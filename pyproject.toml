@@ -38,7 +38,7 @@ dependencies = [
   "freetype-py",
   "mapbox_earcut",
   "networkx",
-  "pyglet<2",
+  "pyglet<3",
   "scikit-image",
   "trimesh>=4,<4.5",
   "ipycytoscape",
