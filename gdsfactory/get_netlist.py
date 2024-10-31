@@ -112,6 +112,7 @@ def get_netlist(
     get_instance_name: Callable[..., str] = get_instance_name_from_alias,
     allow_multiple: bool = False,
     merge_info: bool = False,
+    extend_recursive_port_names: bool = False,
 ) -> dict[str, Any]:
     """Returns instances, connections and placements from :class:`Component` as a dict.
 
@@ -144,6 +145,7 @@ def get_netlist(
         allow_multiple: False to raise an error if more than two ports share the same connection. \
                 if True, will return key: [value] pairs with [value] a list of all connected instances.
         merge_info: True to merge info and settings into the same dict.
+        extend_recursive_port_names: Compatibility with recursive get_netlist port name identifiers.
 
     Returns:
         Dictionary containing the following:
@@ -236,7 +238,12 @@ def get_netlist(
                         # a bit of a hack... get the top-level port for the
                         # ComponentArray, by our known naming convention. I hope no one
                         # renames these ports!
-                        parent_port = component[top_name]
+                        if extend_recursive_port_names:
+                            parent_port = component[
+                                parent_port_name
+                            ]  # otherwise links to non existent component ports
+                        else:
+                            parent_port = component[top_name]
                         name2port[lower_name] = parent_port
                         top_ports_list.add(top_name)
                         ports_by_type[parent_port.port_type].append(lower_name)
