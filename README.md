@@ -11,7 +11,7 @@
 
 ![logo](https://i.imgur.com/cN1ZWq8.png)
 
-> **⚠️ Deprecation Warning:**  
+> **⚠️ Deprecation Warning:**
 > This version of gdsfactory will only have bug fixes and minor updates. Please see [https://github.com/gdsfactory/gdsfactory](https://github.com/gdsfactory/gdsfactory) for the latest version.
 
 gdsfactory: An open source platform for end to-end chip design and validation.
