@@ -112,6 +112,7 @@ def get_netlist(
     get_instance_name: Callable[..., str] = get_instance_name_from_alias,
     allow_multiple: bool = False,
     merge_info: bool = False,
+    extend_recursive_port_names: bool = False,
 ) -> dict[str, Any]:
     """Returns instances, connections and placements from :class:`Component` as a dict.
 
@@ -144,6 +145,7 @@ def get_netlist(
         allow_multiple: False to raise an error if more than two ports share the same connection. \
                 if True, will return key: [value] pairs with [value] a list of all connected instances.
         merge_info: True to merge info and settings into the same dict.
+        extend_recursive_port_names: Compatibility with recursive get_netlist port name identifiers.
 
     Returns:
         Dictionary containing the following:
@@ -197,12 +199,11 @@ def get_netlist(
 
         # Prefer name from settings over c.name
         if c.settings:
-            settings = dict(c.settings)
+            settings = c.settings.model_dump(exclude_none=True)
 
             if merge_info:
-                settings.update(
-                    {k: v for k, v in dict(c.info).items() if k in settings}
-                )
+                info = c.info.model_dump(exclude_none=True)
+                settings.update({k: v for k, v in info.items() if k in settings})
 
             settings = clean_value_json(settings)
             instance.update(
@@ -237,7 +238,12 @@ def get_netlist(
                         # a bit of a hack... get the top-level port for the
                         # ComponentArray, by our known naming convention. I hope no one
                         # renames these ports!
-                        parent_port = component[top_name]
+                        if extend_recursive_port_names:
+                            parent_port = component[
+                                parent_port_name
+                            ]  # otherwise links to non existent component ports
+                        else:
+                            parent_port = component[top_name]
                         name2port[lower_name] = parent_port
                         top_ports_list.add(top_name)
                         ports_by_type[parent_port.port_type].append(lower_name)
@@ -598,9 +604,11 @@ def get_netlist_recursive(
                 inst_name = get_instance_name(component, ref)
                 netlist_dict = {"component": f"{rcell.name}{component_suffix}"}
                 if rcell.settings:
-                    netlist_dict.update(settings=rcell.settings)
+                    netlist_dict.update(
+                        settings=rcell.settings.model_dump(exclude_none=True)
+                    )
                 if rcell.info:
-                    netlist_dict.update(info=rcell.info)
+                    netlist_dict.update(info=rcell.info.model_dump(exclude_none=True))
                 netlist["instances"][inst_name] = netlist_dict
 
     return all_netlists
@@ -638,43 +646,47 @@ DEFAULT_CRITICAL_CONNECTION_ERROR_TYPES = {
 
 if __name__ == "__main__":
     import gdsfactory as gf
-    from gdsfactory.decorators import flatten_offgrid_references
 
-    rotation_value = 35
-    cname = "test_get_netlist_transformed"
-    c = gf.Component(cname)
-    i1 = c.add_ref(gf.components.straight(), "i1")
-    i2 = c.add_ref(gf.components.straight(), "i2")
-    i1.rotate(rotation_value)
-    i2.connect("o2", i1.ports["o1"])
+    c = gf.c.mzi()
+    n = c.get_netlist()
 
-    # flatten the oddly rotated refs
-    c = flatten_offgrid_references(c)
-    print(c.get_dependencies())
-    c.show()
+    # from gdsfactory.decorators import flatten_offgrid_references
 
-    # perform the initial sanity checks on the netlist
-    netlist = c.get_netlist()
-    connections = netlist["connections"]
-    assert len(connections) == 1, len(connections)
-    cpairs = list(connections.items())
-    extracted_port_pair = set(cpairs[0])
-    expected_port_pair = {"i2,o2", "i1,o1"}
-    assert extracted_port_pair == expected_port_pair
+    # rotation_value = 35
+    # cname = "test_get_netlist_transformed"
+    # c = gf.Component(cname)
+    # i1 = c.add_ref(gf.components.straight(), "i1")
+    # i2 = c.add_ref(gf.components.straight(), "i2")
+    # i1.rotate(rotation_value)
+    # i2.connect("o2", i1.ports["o1"])
 
-    recursive_netlist = get_netlist_recursive(c)
-    top_netlist = recursive_netlist[cname]
-    # the recursive netlist should have 3 entries, for the top level and two
-    # rotated straights
-    assert len(recursive_netlist) == 1, len(recursive_netlist)
-    # confirm that the child netlists have reference attributes properly set
+    # # flatten the oddly rotated refs
+    # c = flatten_offgrid_references(c)
+    # print(c.get_dependencies())
+    # c.show()
 
-    i1_cell_name = top_netlist["instances"]["i1"]["component"]
-    i1_netlist = recursive_netlist[i1_cell_name]
-    # currently for transformed netlists, the instance name of the inner cell is None
-    assert i1_netlist["placements"][None]["rotation"] == rotation_value
+    # # perform the initial sanity checks on the netlist
+    # netlist = c.get_netlist()
+    # connections = netlist["connections"]
+    # assert len(connections) == 1, len(connections)
+    # cpairs = list(connections.items())
+    # extracted_port_pair = set(cpairs[0])
+    # expected_port_pair = {"i2,o2", "i1,o1"}
+    # assert extracted_port_pair == expected_port_pair
 
-    i2_cell_name = top_netlist["instances"]["i2"]["component"]
-    i2_netlist = recursive_netlist[i2_cell_name]
-    # currently for transformed netlists, the instance name of the inner cell is None
-    assert i2_netlist["placements"][None]["rotation"] == rotation_value
+    # recursive_netlist = get_netlist_recursive(c)
+    # top_netlist = recursive_netlist[cname]
+    # # the recursive netlist should have 3 entries, for the top level and two
+    # # rotated straights
+    # assert len(recursive_netlist) == 1, len(recursive_netlist)
+    # # confirm that the child netlists have reference attributes properly set
+
+    # i1_cell_name = top_netlist["instances"]["i1"]["component"]
+    # i1_netlist = recursive_netlist[i1_cell_name]
+    # # currently for transformed netlists, the instance name of the inner cell is None
+    # assert i1_netlist["placements"][None]["rotation"] == rotation_value
+
+    # i2_cell_name = top_netlist["instances"]["i2"]["component"]
+    # i2_netlist = recursive_netlist[i2_cell_name]
+    # # currently for transformed netlists, the instance name of the inner cell is None
+    # assert i2_netlist["placements"][None]["rotation"] == rotation_value
