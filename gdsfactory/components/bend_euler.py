@@ -82,7 +82,10 @@ def bend_euler(
 
     c.absorb(ref)
     c.add_route_info(
-        cross_section=x, length=c.info["length"], n_bend_90=abs(angle / 90.0)
+        cross_section=x,
+        length=c.info["length"],
+        n_bend_90=abs(angle / 90.0),
+        min_bend_radius=c.info["radius_min"],
     )
     return c
 
