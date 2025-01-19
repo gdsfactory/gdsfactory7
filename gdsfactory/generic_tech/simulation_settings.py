@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import partial
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from scipy import interpolate
 
 material_name_to_lumerical_default = {
@@ -52,10 +52,9 @@ class SimulationSettingsLumericalFdtd(BaseModel):
     distance_monitors_to_pml: float = 0.5
     material_name_to_lumerical: dict[str, str] = material_name_to_lumerical_default
 
-    class Config:
-        """pydantic basemodel config."""
-
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+    )
 
 
 SIMULATION_SETTINGS_LUMERICAL_FDTD = SimulationSettingsLumericalFdtd()
