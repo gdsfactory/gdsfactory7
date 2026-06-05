@@ -47,6 +47,14 @@ def bend_s(
     bend_ref = c << bend
     c.add_ports(bend_ref.ports)
     c.copy_child_info(bend)
+
+    x = gf.get_cross_section(cross_section)
+    c.add_route_info(
+        cross_section=x,
+        length=c.info["length"],
+        n_bend_s=1,
+        min_bend_radius=c.info["min_bend_radius"],
+    )
     return c
 
 
