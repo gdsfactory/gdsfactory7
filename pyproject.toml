@@ -27,7 +27,7 @@ dependencies = [
   "pyyaml",
   "qrcode",
   "rectpack<1",
-  "rich<14",
+  "rich<16",
   "scipy<2",
   "shapely<3",
   "toolz<1",
