@@ -13,7 +13,7 @@ classifiers = [
 ]
 dependencies = [
   "flatdict",
-  "gdstk>=0.9.49,<0.10",
+  "gdstk>=0.9.49,<1.1",
   "jinja2<4",
   "loguru<1",
   "matplotlib<4",
